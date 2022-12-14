@@ -38,5 +38,5 @@ esbuild.build({
 	logLevel: "info",
 	sourcemap: prod ? false : 'inline',
 	treeShaking: true,
-	outfile: 'main.js',
+	outdir: 'showcase vault/.obsidian/plugins/obsidian-load-unload-bug-report/',
 }).catch(() => process.exit(1));

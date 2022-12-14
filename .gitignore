@@ -20,3 +20,6 @@ data.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
+
+!showcase vault/.obsidian/plugins/obsidian-load-unload-bug-report/main.js
+showcase vault/.obsidian/plugins/hot-reload
