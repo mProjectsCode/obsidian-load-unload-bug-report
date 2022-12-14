@@ -1,69 +1,59 @@
 import {MarkdownRenderChild, Plugin} from 'obsidian';
 
-export default class BugReportPlugin extends Plugin {
+/**
+ * This demonstration plugin provides a reproduction for bugs in loading and unloading markdown render childes in both reading and live preview mode.
+ */
+export default class MarkdownRenderChildLifetimeBugDemoPlugin extends Plugin {
+	/**
+	 * A list of all active markdown render childes created by this plugin.
+	 * When the `onload` method of a render child is called, it gets added to this list.
+	 * When the `onunload` method of a render child is called, it gets removed from this list.
+	 */
 	codeblocks: Emoji[];
 
 
 	async onload() {
-
 		this.codeblocks = [];
 
+		/**
+		 * A command to print out the list of currently loaded render childes.
+		 */
 		this.addCommand({
 			id: 'debug-log-active-code-blocks',
 			name: 'Debug log active code blocks',
 			callback: () => {
-				console.log(this.codeblocks);
+				console.log(`The current number of loaded code blocks is ${this.codeblocks.length}.`, this.codeblocks);
 			},
 		});
 
-		this.registerMarkdownPostProcessor((element, context) => {
-			const codeblocks = element.querySelectorAll("code");
-
-			for (let index = 0; index < codeblocks.length; index++) {
-				const codeblock = codeblocks.item(index);
-				const text = codeblock.innerText.trim();
-				const isEmoji = text[0] === ":" && text[text.length - 1] === ":";
-
-				if (isEmoji) {
-					context.addChild(new Emoji(this, codeblock, text, context.sourcePath));
-				}
-			}
-		});
-
+		/**
+		 * Register our markdown render child.
+		 */
 		this.registerMarkdownCodeBlockProcessor('bug-report', (source, el, context) => {
-			const codeblock = el;
-			const text = source.trim();
-
-			context.addChild(new Emoji(this, codeblock, text, context.sourcePath));
+			context.addChild(
+				new Emoji(this, el, source.trim(), context.sourcePath)
+			);
 		});
-	}
-
-	loadCodeblock(emoji: Emoji) {
-		this.codeblocks.push(emoji);
-	}
-
-	unloadCodeblock(emoji: Emoji) {
-		this.codeblocks = this.codeblocks.filter(x => x.id !== emoji.id);
 	}
 
 	onunload() {
-
+		// for this showcase it is not necessary to unload anything here
 	}
 }
 
 class Emoji extends MarkdownRenderChild {
 	static ALL_EMOJIS: Record<string, string> = {
-		":+1:": "👍",
-		":sunglasses:": "😎",
-		":smile:": "😄",
+		':+1:': '👍',
+		':sunglasses:': '😎',
+		':smile:': '😄',
 	};
 
 	text: string;
 	fileName: string;
 	id: string;
-	plugin: BugReportPlugin;
+	plugin: MarkdownRenderChildLifetimeBugDemoPlugin;
 
-	constructor(plugin: BugReportPlugin, containerEl: HTMLElement, text: string, fileName: string) {
+	constructor(plugin: MarkdownRenderChildLifetimeBugDemoPlugin, containerEl: HTMLElement, text: string, fileName: string) {
 		super(containerEl);
 
 		this.id = crypto.randomUUID();
@@ -74,17 +64,21 @@ class Emoji extends MarkdownRenderChild {
 	}
 
 	onload() {
-		console.log(`loaded markdown render child in file "${this.fileName}" with content "${this.text}" with id "${this.id}"`);
-		this.plugin.loadCodeblock(this);
+		// add this render child to the code block list
+		this.plugin.codeblocks.push(this);
 
-		const emojiEl = this.containerEl.createSpan({
+		console.log(`Loaded markdown render child in file "${this.fileName}" with content "${this.text}" with id "${this.id}". The current number of loaded render childes is ${this.plugin.codeblocks.length}.`);
+
+		// add an emoji to the content of the code block. This has nothing to do with the bug itself.
+		this.containerEl.createSpan({
 			text: Emoji.ALL_EMOJIS[this.text] ?? this.text,
 		});
-		// this.containerEl.replaceWith(emojiEl);
 	}
 
 	onunload(): void {
-		console.log(`unloaded markdown render child in file "${this.fileName}" with content "${this.text}" with id "${this.id}"`);
-		this.plugin.unloadCodeblock(this);
+		// remove this render child from the code block list
+		this.plugin.codeblocks = this.plugin.codeblocks.filter(x => x.id !== this.id);
+
+		console.log(`Unloaded markdown render child in file "${this.fileName}" with content "${this.text}" with id "${this.id}". The remaining number of loaded render childes is ${this.plugin.codeblocks.length}.`);
 	}
 }
